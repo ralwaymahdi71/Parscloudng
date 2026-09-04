@@ -86,12 +86,23 @@ jobs:
         distribution: 'temurin'
         java-version: '21'
 
-    - name: Decode Keystore
-      uses: timheuer/base64-to-file@v2.0.0
-      id: android_keystore
-      with:
-        fileName: "android_keystore.jks"
-        encodedString: ${{ secrets.APP_KEYSTORE_BASE64 }}
+    - name: Generate temporary keystore
+      run: |
+        STOREPASS=$(openssl rand -hex 24)
+        KEYPASS=$(openssl rand -hex 24)
+
+        keytool -genkeypair -v \
+          -keystore "$RUNNER_TEMP/android_keystore.jks" \
+          -storepass "$STOREPASS" \
+          -keypass "$KEYPASS" \
+          -alias "parscloud-test" \
+          -keyalg RSA \
+          -keysize 2048 \
+          -validity 10000 \
+          -dname "CN=Parscloud Test"
+
+        echo "KEYSTORE_PASSWORD=$STOREPASS" >> "$GITHUB_ENV"
+        echo "KEY_PASSWORD=$KEYPASS" >> "$GITHUB_ENV"
 
     - name: Build APK
       run: |
@@ -99,7 +110,10 @@ jobs:
         echo "sdk.dir=${ANDROID_HOME}" > local.properties
         chmod 755 gradlew
         ./gradlew licenseFdroidReleaseReport
-        ./gradlew assembleRelease -PpattngVersion="${{ inputs.release_tag }}" -Pandroid.injected.signing.store.file=${{ steps.android_keystore.outputs.filePath }} -Pandroid.injected.signing.store.password=${{ secrets.APP_KEYSTORE_PASSWORD }} -Pandroid.injected.signing.key.alias=${{ secrets.APP_KEYSTORE_ALIAS }} -Pandroid.injected.signing.key.password=${{ secrets.APP_KEY_PASSWORD }}
+        ./gradlew assembleRelease -PpattngVersion="${{ inputs.release_tag }}" -Pandroid.injected.signing.store.file=$RUNNER_TEMP/android_keystore.jks \
+-Pandroid.injected.signing.store.password=$KEYSTORE_PASSWORD \
+-Pandroid.injected.signing.key.alias=parscloud-test \
+-Pandroid.injected.signing.key.password=$KEY_PASSWORD
     
     - name: Upload arm64-v8a APK
       uses: actions/upload-artifact@v7
