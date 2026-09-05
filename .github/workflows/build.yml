@@ -8,7 +8,7 @@ on:
         type: string
   push:
     branches:
-      - master
+      - main
 
 permissions:
   contents: write
@@ -161,7 +161,7 @@ jobs:
             gpg --batch --yes --local-user "$KEY" --detach-sign --output "release-files/$(basename "$apk").sig" "$apk"
           done
 
-          gpg --armor --export "$KEY" > release-files/PattNG-public-key.asc
+          gpg --armor --export "$KEY" > release-files/Parscloud-public-key.asc
 
       - name: Upload APKs, signatures and public key to release
         uses: svenstaro/upload-release-action@v2
