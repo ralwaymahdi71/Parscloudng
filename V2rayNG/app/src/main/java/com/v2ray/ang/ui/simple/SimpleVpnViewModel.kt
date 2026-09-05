@@ -15,6 +15,7 @@ import com.v2ray.ang.dto.RealPingEvent
 import com.v2ray.ang.handler.MmkvManager
 import com.v2ray.ang.handler.SimpleVpnRepository
 import com.v2ray.ang.handler.SimpleVpnRepository.SimpleServerUiModel
+import com.v2ray.ang.handler.SettingsManager
 import com.v2ray.ang.helper.MessageHelper
 import com.v2ray.ang.service.RealPingWorkerService
 import com.v2ray.ang.util.LogUtil
@@ -76,8 +77,13 @@ class SimpleVpnViewModel(application: Application) : AndroidViewModel(applicatio
         )
         MessageHelper.sendMsg2Service(application, AppConfig.MSG_REGISTER_CLIENT, "")
 
-        loadLocalState()
-        onRefresh()
+        viewModelScope.launch {
+    withContext(Dispatchers.IO) {
+        SettingsManager.initAssets(application, application.assets)
+    }
+    loadLocalState()
+    onRefresh()
+}
     }
 
     private fun loadLocalState() {
